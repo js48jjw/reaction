@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction Speed Test</title>
+    <!-- Kakao Ad Script -->
+    <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            color: #333;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-area {
+            width: 100%;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            background: #f8f9fa;
+            margin: 15px 0;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .game-area.waiting {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+
+        .game-area.ready {
+            background: #ff5252;
+            border: 2px solid #d32f2f;
+            animation: pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        .game-area.too-early {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.02); }
+        }
+
+        .game-text {
+            font-size: 42px;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .game-text.waiting {
+            color: #1976d2;
+        }
+
+        .game-text.ready {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-text.too-early {
+            color: #f57c00;
+        }
+
+        .instructions {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .instructions h1 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .result {
+            font-size: 24px;
+            margin: 15px 0;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .result.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result .time {
+            font-size: 42px;
+            font-weight: bold;
+            color: #4caf50;
+            margin: 8px 0;
+        }
+
+        .result .message {
+            color: #666;
+            font-size: 18px;
+        }
+
+        .stats {
+            width: 100%;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .stats h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .history {
+            margin-top: 15px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: #f8f9fa;
+            margin-bottom: 4px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .history-item .attempt {
+            color: #666;
+        }
+
+        .history-item .time {
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Ad Container Styles */
+        .ad-container {
+            position: fixed;
+            top: 80px;
+            width: 160px;
+            height: 600px;
+            z-index: 999;
+            display: flex;
+            align-items: flex-start;
+            pointer-events: auto;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .left-ad {
+            left: 10px;
+        }
+
+        .right-ad {
+            right: 16px;
+        }
+
+        .ad-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            padding: 10px;
+        }
+
+        /* Hide ads on screens smaller than 800px */
+        @media (max-width: 799px) {
+            .ad-container {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px 0;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+
+            .game-text {
+                font-size: 32px;
+            }
+
+            .instructions h1 {
+                font-size: 22px;
+            }
+
+            .result .time {
+                font-size: 32px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+            
+            .stat-label {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Left Ads -->
+    <div class="ad-container left-ad">
+        <ins class="kakao_ad_area" style="display: block;" 
+             data-ad-unit="DAN-"
+             data-ad-width="160"
+             data-ad-height="600"></ins>
+        <div class="ad-placeholder">Advertisement<br>Loading...</div>
+    </div>
+    
+    <!-- Right Ads -->
+    <div class="ad-container right-ad">
+        <ins class="kakao_ad_area" style="display: block;" 
+             data-ad-unit="DAN-"
+             data-ad-width="160"
+             data-ad-height="600"></ins>
+        <div class="ad-placeholder">Advertisement<br>Loading...</div>
+    </div>
+
+    <div class="container">
+        <div class="instructions">
+            <h1>Reaction Speed Test</h1>
+            <p>Click when you see the word "CLICK". Don't click too early!</p>
+        </div>
+
+        <div class="game-area waiting" id="gameArea">
+            <div class="game-text waiting" id="gameText">Click to Start</div>
+        </div>
+
+        <div class="result" id="result">
+            <div class="time" id="timeDisplay"></div>
+            <div class="message" id="message"></div>
+        </div>
+
+        <button class="button" id="resetButton" style="display: none;">Try Again</button>
+
+        <div class="stats">
+            <h2>Your Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="bestTime">-</div>
+                    <div class="stat-label">Best Time (ms)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgTime">-</div>
+                    <div class="stat-label">Average (ms)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="attempts">0</div>
+                    <div class="stat-label">Attempts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="tooEarly">0</div>
+                    <div class="stat-label">Too Early</div>
+                </div>
+            </div>
+            <div class="history" id="history"></div>
+        </div>
+    </div>
+
+    <script>
+        class ReactionSpeedTest {
+            constructor() {
+                this.gameArea = document.getElementById('gameArea');
+                this.gameText = document.getElementById('gameText');
+                this.result = document.getElementById('result');
+                this.timeDisplay = document.getElementById('timeDisplay');
+                this.message = document.getElementById('message');
+                this.resetButton = document.getElementById('resetButton');
+                
+                this.state = 'waiting'; // waiting, countdown, ready, finished
+                this.startTime = null;
+                this.timeout = null;
+                this.attempts = [];
+                this.tooEarlyCount = 0;
+                
+                this.init();
+            }
+
+            init() {
+                this.gameArea.addEventListener('click', () => this.handleClick());
+                this.resetButton.addEventListener('click', () => this.reset());
+                this.loadStats();
+                this.initAds();
+            }
+
+            initAds() {
+                // Hide placeholder when ads are loaded
+                const checkAdsLoaded = setInterval(() => {
+                    const adAreas = document.querySelectorAll('.kakao_ad_area');
+                    let allLoaded = true;
+                    
+                    adAreas.forEach(ad => {
+                        if (ad.children.length === 0) {
+                            allLoaded = false;
+                        } else {
+                            const placeholder = ad.parentElement.querySelector('.ad-placeholder');
+                            if (placeholder) {
+                                placeholder.style.display = 'none';
+                            }
+                        }
+                    });
+                    
+                    if (allLoaded) {
+                        clearInterval(checkAdsLoaded);
+                    }
+                }, 1000);
+                
+                // Stop checking after 10 seconds
+                setTimeout(() => {
+                    clearInterval(checkAdsLoaded);
+                }, 10000);
+            }
+
+            handleClick() {
+                switch(this.state) {
+                    case 'waiting':
+                        this.startCountdown();
+                        break;
+                    case 'countdown':
+                        this.tooEarly();
+                        break;
+                    case 'ready':
+                        this.recordReaction();
+                        break;
+                    case 'finished':
+                        this.reset();
+                        break;
+                }
+            }
+
+            startCountdown() {
+                this.state = 'countdown';
+                this.gameArea.className = 'game-area waiting';
+                this.gameText.className = 'game-text waiting';
+                this.gameText.textContent = 'Wait for it...';
+                this.hideResult();
+                
+                // Random delay between 2-7 seconds
+                const delay = Math.random() * 5000 + 2000;
+                
+                this.timeout = setTimeout(() => {
+                    this.showClick();
+                }, delay);
+            }
+
+            showClick() {
+                this.state = 'ready';
+                this.startTime = Date.now();
+                this.gameArea.className = 'game-area ready';
+                this.gameText.className = 'game-text ready';
+                this.gameText.textContent = 'CLICK!';
+            }
+
+            tooEarly() {
+                this.state = 'finished';
+                clearTimeout(this.timeout);
+                this.tooEarlyCount++;
+                
+                this.gameArea.className = 'game-area too-early';
+                this.gameText.className = 'game-text tooo-early';
+                this.gameText.textContent = 'Too Early!';
+                
+                this.showResult('Too early!', 'Wait for the red screen', '#ff9800');
+                this.updateStats();
+                this.resetButton.style.display = 'block';
+            }
+
+            recordReaction() {
+                this.state = 'finished';
+                const reactionTime = Date.now() - this.startTime;
+                this.attempts.push(reactionTime);
+                
+                this.gameArea.className = 'game-area';
+                this.gameText.className = 'game-text';
+                this.gameText.textContent = 'Click to Try Again';
+                
+                let message = '';
+                if (reactionTime < 200) {
+                    message = 'Lightning fast! 🚀';
+                } else if (reactionTime < 300) {
+                    message = 'Excellent! ⚡';
+                } else if (reactionTime < 400) {
+                    message = 'Good! 👍';
+                } else if (reactionTime < 500) {
+                    message = 'Not bad! 👌';
+                } else {
+                    message = 'Keep practicing! 💪';
+                }
+                
+                this.showResult(`${reactionTime}ms`, message, '#4caf50');
+                this.updateStats();
+                this.saveStats();
+                this.resetButton.style.display = 'block';
+            }
+
+            showResult(time, message, color) {
+                this.timeDisplay.textContent = time;
+                this.timeDisplay.style.color = color;
+                this.message.textContent = message;
+                this.result.classList.add('show');
+            }
+
+            hideResult() {
+                this.result.classList.remove('show');
+                this.resetButton.style.display = 'none';
+            }
+
+            reset() {
+                this.state = 'waiting';
+                this.gameArea.className = 'game-area waiting';
+                this.gameText.className = 'game-text waiting';
+                this.gameText.textContent = 'Click to Start';
+                this.hideResult();
+                clearTimeout(this.timeout);
+            }
+
+            updateStats() {
+                const validAttempts = this.attempts;
+                const bestTime = validAttempts.length > 0 ? Math.min(...validAttempts) : '-';
+                const avgTime = validAttempts.length > 0 ? 
+                    Math.round(validAttempts.reduce((a, b) => a + b, 0) / validAttempts.length) : '-';
+                
+                document.getElementById('bestTime').textContent = bestTime === '-' ? '-' : `${bestTime}ms`;
+                document.getElementById('avgTime').textContent = avgTime === '-' ? '-' : `${avgTime}ms`;
+                document.getElementById('attempts').textContent = validAttempts.length;
+                document.getElementById('tooEarly').textContent = this.tooEarlyCount;
+                
+                this.updateHistory();
+            }
+
+            updateHistory() {
+                const historyContainer = document.getElementById('history');
+                historyContainer.innerHTML = '';
+                
+                const recentAttempts = this.attempts.slice(-5).reverse();
+                recentAttempts.forEach((time, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.innerHTML = `
+                        <span class="attempt">Attempt ${this.attempts.length - index}</span>
+                        <span class="time">${time}ms</span>
+                    `;
+                    historyContainer.appendChild(item);
+                });
+            }
+
+            saveStats() {
+                localStorage.setItem('reactionAttempts', JSON.stringify(this.attempts));
+                localStorage.setItem('reactionTooEarly', this.tooEarlyCount.toString());
+            }
+
+            loadStats() {
+                const savedAttempts = localStorage.getItem('reactionAttempts');
+                const savedTooEarly = localStorage.getItem('reactionTooEarly');
+                
+                if (savedAttempts) {
+                    this.attempts = JSON.parse(savedAttempts);
+                }
+                if (savedTooEarly) {
+                    this.tooEarlyCount = parseInt(savedTooEarly);
+                }
+                
+                this.updateStats();
+            }
+        }
+
+        // Initialize the game
+        const game = new ReactionSpeedTest();
+    </script>
+</body>
+</html>
